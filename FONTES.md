@@ -15,7 +15,7 @@
 > como fonte declarada.
 
 | # | URL | O que foi consultado | Onde aparece no entregável |
-| --- | --- | --- | --- |
+| --- | [--- ](https://chatgpt.com/share/6ac6c7e8-bfe4-83e9-a2d5-99181dfc4b79)| Todo o fluxo de criação do crud e atendimento aos testes | Em todos os arquivos do 2026/exams/prova03|
 | — | | | |
 
 *(Ex.: `https://docs.oracle.com/...` → sintaxe de `Optional` → `plan.md` na
