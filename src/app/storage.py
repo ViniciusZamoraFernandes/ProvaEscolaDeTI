@@ -11,6 +11,7 @@ class Storage:
         self.memoria = {
             "data": None,
             "sequencia": 0,
+            "preferenciais_chamadas": 0,
             "senhas": [],
         }
 
@@ -22,6 +23,7 @@ class Storage:
 
             if ARQUIVO_DADOS.exists():
                 self.memoria = self._carregar_arquivo()
+                self._garantir_estrutura()
             else:
                 self._salvar_arquivo(self.memoria)
 
@@ -29,6 +31,12 @@ class Storage:
 
         except (OSError, json.JSONDecodeError):
             return False
+
+    def _garantir_estrutura(self):
+        self.memoria.setdefault("data", None)
+        self.memoria.setdefault("sequencia", 0)
+        self.memoria.setdefault("preferenciais_chamadas", 0)
+        self.memoria.setdefault("senhas", [])
 
     def _carregar_arquivo(self):
         with ARQUIVO_DADOS.open("r", encoding="utf-8") as arquivo:
@@ -53,6 +61,7 @@ class Storage:
             if self.usar_arquivo:
                 try:
                     self.memoria = self._carregar_arquivo()
+                    self._garantir_estrutura()
                 except (OSError, json.JSONDecodeError):
                     self.usar_arquivo = False
 
@@ -72,6 +81,7 @@ class Storage:
             if self.usar_arquivo:
                 try:
                     self.memoria = self._carregar_arquivo()
+                    self._garantir_estrutura()
                 except (OSError, json.JSONDecodeError):
                     self.usar_arquivo = False
 
