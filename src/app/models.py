@@ -23,6 +23,7 @@ class Senha(BaseModel):
     tipo: TipoSenha
     emissao: datetime
     status: StatusSenha
+    chamada_em: datetime | None = None
 
     def to_dict(self) -> dict:
-        return self.model_dump()
+        return self.model_dump(exclude_none=True)
