@@ -5,6 +5,9 @@ from app.services.senha_service import (
     emitir_senha,
     obter_painel,
     obter_proxima_senha,
+    concluir_senha,
+    rechamar_senha,
+    cancelar_senha,
 )
 
 
@@ -63,6 +66,69 @@ def painel():
             senha.to_dict()
             for senha in chamadas
         ]
+    }), 200
+
+
+@app.post("/senhas/<codigo>/concluir")
+def concluir(codigo):
+
+    senha, erro = concluir_senha(codigo)
+
+    if erro == "senha_nao_encontrada":
+        return jsonify({
+            "erro": erro
+        }), 404
+
+    if erro == "senha_nao_chamada":
+        return jsonify({
+            "erro": erro
+        }), 409
+
+    return jsonify({
+        "status": "concluida",
+        "observacao": senha.to_dict()
+    }), 200
+
+
+@app.post("/senhas/<codigo>/rechamar")
+def rechamar(codigo):
+
+    senha, erro = rechamar_senha(codigo)
+
+    if erro == "senha_nao_encontrada":
+        return jsonify({
+            "erro": erro
+        }), 404
+
+    if erro == "senha_nao_chamada":
+        return jsonify({
+            "erro": erro
+        }), 409
+
+    return jsonify({
+        "status": "chamada",
+        "observacao": senha.to_dict()
+    }), 200
+
+
+@app.post("/senhas/<codigo>/cancelar")
+def cancelar(codigo):
+
+    senha, erro = cancelar_senha(codigo)
+
+    if erro == "senha_nao_encontrada":
+        return jsonify({
+            "erro": erro
+        }), 404
+
+    if erro == "senha_nao_aguardando":
+        return jsonify({
+            "erro": erro
+        }), 409
+
+    return jsonify({
+        "status": "cancelada",
+        "observacao": senha.to_dict()
     }), 200
 
 
