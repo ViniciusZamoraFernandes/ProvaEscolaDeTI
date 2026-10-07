@@ -22,6 +22,7 @@ def emitir_senha(tipo):
         if dados.get("data") != data_atual():
             dados["data"] = data_atual()
             dados["sequencia"] = 0
+            dados["preferenciais_chamadas"] = 0
 
         dados["sequencia"] += 1
 
@@ -68,29 +69,32 @@ def obter_proxima_senha():
             if senha["tipo"] == "normal"
         ]
 
-        quantidade_preferenciais = 0
+        preferenciais_chamadas = dados.get(
+            "preferenciais_chamadas",
+            0,
+        )
 
-        for senha in reversed(senhas):
+        deve_chamar_preferencial = (
+            preferenciais
+            and (
+                preferenciais_chamadas < RAZAO_PREFERENCIAL
+                or not normais
+            )
+        )
 
-            if senha["status"] != "chamada":
-                continue
-
-            if senha["tipo"] == "preferencial":
-                quantidade_preferenciais += 1
-            else:
-                break
-
-        if preferenciais and (
-            quantidade_preferenciais < RAZAO_PREFERENCIAL
-            or not normais
-        ):
+        if deve_chamar_preferencial:
             proxima = preferenciais[0]
-
+            dados["preferenciais_chamadas"] = (
+                preferenciais_chamadas + 1
+            )
         elif normais:
             proxima = normais[0]
-
+            dados["preferenciais_chamadas"] = 0
         else:
             proxima = preferenciais[0]
+            dados["preferenciais_chamadas"] = (
+                preferenciais_chamadas + 1
+            )
 
         proxima["status"] = "chamada"
         proxima["chamada_em"] = agora()
