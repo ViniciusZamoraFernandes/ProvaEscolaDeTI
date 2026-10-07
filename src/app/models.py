@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from datetime import datetime
 
 
 TIPOS_VALIDOS = {
@@ -52,3 +51,20 @@ class Senha:
             status=dados["status"],
             chamada_em=dados.get("chamada_em"),
         )
+
+    def concluir(self):
+        if self.status != "chamada":
+            raise ValueError("senha_nao_chamada")
+
+        self.status = "concluida"
+
+    def rechamar(self, chamada_em: str):
+        if self.status != "chamada":
+            raise ValueError("senha_nao_chamada")
+
+        self.status = "chamada"
+        self.chamada_em = chamada_em
+
+    def cancelar(self):
+        if self.status != "aguardando":
+            raise ValueError("senha_nao_aguardando")
