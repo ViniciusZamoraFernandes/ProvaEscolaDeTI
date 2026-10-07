@@ -1,35 +1,37 @@
 from datetime import datetime, timezone, timedelta
 
-from app.models import Senha, TipoSenha, StatusSenha
+from app.config import PREFIXO, RAZAO_PREFERENCIAL
+from app.models import Senha
 from app.storage import storage
 
 
 FUSO = timezone(timedelta(hours=-3))
 
-RAZAO_PREFERENCIAL = 2
+
+def agora():
+    return datetime.now(FUSO).isoformat()
 
 
-def agora() -> datetime:
-    return datetime.now(FUSO)
+def data_atual():
+    return datetime.now(FUSO).date().isoformat()
 
 
-def emitir_senha(tipo: TipoSenha) -> Senha:
-    data_atual = agora().date().isoformat()
+def emitir_senha(tipo):
+    def operacao(dados):
 
-    def operacao(dados: dict):
-        if dados.get("data") != data_atual:
-            dados["data"] = data_atual
+        if dados.get("data") != data_atual():
+            dados["data"] = data_atual()
             dados["sequencia"] = 0
 
         dados["sequencia"] += 1
 
-        codigo = f"E{dados['sequencia']:03d}"
+        codigo = f"{PREFIXO}{dados['sequencia']:03d}"
 
         senha = Senha(
             codigo=codigo,
             tipo=tipo,
             emissao=agora(),
-            status=StatusSenha.AGUARDANDO,
+            status="aguardando",
         )
 
         dados.setdefault("senhas", [])
@@ -40,15 +42,15 @@ def emitir_senha(tipo: TipoSenha) -> Senha:
     return storage.executar_atomico(operacao)
 
 
-def obter_proxima_senha() -> Senha | None:
+def obter_proxima_senha():
 
-    def operacao(dados: dict):
+    def operacao(dados):
         senhas = dados.get("senhas", [])
 
         aguardando = [
             senha
             for senha in senhas
-            if senha["status"] == StatusSenha.AGUARDANDO.value
+            if senha["status"] == "aguardando"
         ]
 
         if not aguardando:
@@ -57,61 +59,63 @@ def obter_proxima_senha() -> Senha | None:
         preferenciais = [
             senha
             for senha in aguardando
-            if senha["tipo"] == TipoSenha.PREFERENCIAL.value
+            if senha["tipo"] == "preferencial"
         ]
 
         normais = [
             senha
             for senha in aguardando
-            if senha["tipo"] == TipoSenha.NORMAL.value
+            if senha["tipo"] == "normal"
         ]
 
-        preferenciais_chamadas = 0
+        quantidade_preferenciais = 0
 
         for senha in reversed(senhas):
-            if senha["status"] != StatusSenha.CHAMADA.value:
+
+            if senha["status"] != "chamada":
                 continue
 
-            if senha["tipo"] == TipoSenha.PREFERENCIAL.value:
-                preferenciais_chamadas += 1
+            if senha["tipo"] == "preferencial":
+                quantidade_preferenciais += 1
             else:
                 break
 
         if preferenciais and (
-            preferenciais_chamadas < RAZAO_PREFERENCIAL
+            quantidade_preferenciais < RAZAO_PREFERENCIAL
             or not normais
         ):
             proxima = preferenciais[0]
-        else:
+
+        elif normais:
             proxima = normais[0]
 
-        proxima["status"] = StatusSenha.CHAMADA.value
-        proxima["chamada_em"] = agora().isoformat()
+        else:
+            proxima = preferenciais[0]
 
-        return Senha.model_validate(proxima)
+        proxima["status"] = "chamada"
+        proxima["chamada_em"] = agora()
+
+        return Senha.from_dict(proxima)
 
     return storage.executar_atomico(operacao)
 
 
-def obter_painel() -> list[Senha]:
+def obter_painel():
 
-    dados = storage.carregar()
+    dados = storage.ler()
 
     chamadas = [
         senha
         for senha in dados.get("senhas", [])
-        if senha["status"] in (
-            StatusSenha.CHAMADA.value,
-            StatusSenha.CONCLUIDA.value,
-        )
+        if senha.get("chamada_em") is not None
     ]
 
     chamadas.sort(
-        key=lambda senha: senha.get("chamada_em", ""),
+        key=lambda senha: senha["chamada_em"],
         reverse=True,
     )
 
     return [
-        Senha.model_validate(senha)
+        Senha.from_dict(senha)
         for senha in chamadas[:5]
     ]
