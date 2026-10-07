@@ -1,9 +1,6 @@
-from fastapi import FastAPI, Request
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from flask import Flask, jsonify, request
 
-from app.models import TipoSenha
+from app.models import TIPOS_VALIDOS
 from app.services.senha_service import (
     emitir_senha,
     obter_painel,
@@ -11,65 +8,66 @@ from app.services.senha_service import (
 )
 
 
-app = FastAPI()
-
-
-class EmitirSenhaRequest(BaseModel):
-    tipo: TipoSenha
-
-
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(
-    request: Request,
-    exc: RequestValidationError,
-):
-    return JSONResponse(
-        status_code=422,
-        content={"erro": "tipo_invalido"},
-    )
+app = Flask(__name__)
 
 
 @app.get("/healthz")
 def healthz():
-    return {"status": "ok"}
+    return jsonify({
+        "status": "ok"
+    }), 200
 
 
 @app.post("/senhas")
-def criar_senha(body: EmitirSenhaRequest):
-    senha = emitir_senha(body.tipo)
+def criar_senha():
 
-    return JSONResponse(
-        status_code=201,
-        content=senha.to_dict(),
-    )
+    body = request.get_json(silent=True)
+
+    if not isinstance(body, dict):
+        return jsonify({
+            "erro": "tipo_invalido"
+        }), 422
+
+    tipo = body.get("tipo")
+
+    if tipo not in TIPOS_VALIDOS:
+        return jsonify({
+            "erro": "tipo_invalido"
+        }), 422
+
+    senha = emitir_senha(tipo)
+
+    return jsonify(senha.to_dict()), 201
 
 
 @app.get("/senhas/proxima")
 def proxima_senha():
+
     senha = obter_proxima_senha()
 
     if senha is None:
-        return JSONResponse(
-            status_code=404,
-            content={"erro": "fila_vazia"},
-        )
+        return jsonify({
+            "erro": "fila_vazia"
+        }), 404
 
-    return JSONResponse(
-        status_code=200,
-        content=senha.to_dict(),
-    )
+    return jsonify(senha.to_dict()), 200
 
 
 @app.get("/painel")
 def painel():
+
     chamadas = obter_painel()
 
-    return JSONResponse(
-        status_code=200,
-        content={
-            "chamadas": [
-                senha.to_dict()
-                for senha in chamadas
-            ]
-        },
+    return jsonify({
+        "chamadas": [
+            senha.to_dict()
+            for senha in chamadas
+        ]
+    }), 200
+
+
+if __name__ == "__main__":
+    app.run(
+        host="0.0.0.0",
+        port=8080,
     )
