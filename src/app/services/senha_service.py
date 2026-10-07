@@ -119,3 +119,77 @@ def obter_painel():
         Senha.from_dict(senha)
         for senha in chamadas[:5]
     ]
+
+
+def concluir_senha(codigo):
+
+    def operacao(dados):
+        senha_dados = _buscar_senha(dados, codigo)
+
+        if senha_dados is None:
+            return None, "senha_nao_encontrada"
+
+        senha = Senha.from_dict(senha_dados)
+
+        try:
+            senha.concluir()
+        except ValueError as erro:
+            return None, str(erro)
+
+        senha_dados.update(senha.to_dict())
+
+        return senha, None
+
+    return storage.executar_atomico(operacao)
+
+
+def rechamar_senha(codigo):
+
+    def operacao(dados):
+        senha_dados = _buscar_senha(dados, codigo)
+
+        if senha_dados is None:
+            return None, "senha_nao_encontrada"
+
+        senha = Senha.from_dict(senha_dados)
+
+        try:
+            senha.rechamar(agora())
+        except ValueError as erro:
+            return None, str(erro)
+
+        senha_dados.update(senha.to_dict())
+
+        return senha, None
+
+    return storage.executar_atomico(operacao)
+
+
+def cancelar_senha(codigo):
+
+    def operacao(dados):
+        senha_dados = _buscar_senha(dados, codigo)
+
+        if senha_dados is None:
+            return None, "senha_nao_encontrada"
+
+        senha = Senha.from_dict(senha_dados)
+
+        try:
+            senha.cancelar()
+        except ValueError as erro:
+            return None, str(erro)
+
+        senha_dados.update(senha.to_dict())
+
+        return senha, None
+
+    return storage.executar_atomico(operacao)
+
+
+def _buscar_senha(dados, codigo):
+    for senha in dados.get("senhas", []):
+        if senha["codigo"] == codigo:
+            return senha
+
+    return None
