@@ -14,28 +14,30 @@ class Storage:
             "senhas": [],
         }
 
-        self.usar_arquivo = self._preparar_arquivo()
+        self.usar_arquivo = self._inicializar()
 
-    def _preparar_arquivo(self) -> bool:
+    def _inicializar(self):
         try:
             DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-            if not ARQUIVO_DADOS.exists():
-                self._salvar_arquivo(self.memoria)
-            else:
+            if ARQUIVO_DADOS.exists():
                 self.memoria = self._carregar_arquivo()
+            else:
+                self._salvar_arquivo(self.memoria)
 
             return True
 
         except (OSError, json.JSONDecodeError):
             return False
 
-    def _carregar_arquivo(self) -> dict:
+    def _carregar_arquivo(self):
         with ARQUIVO_DADOS.open("r", encoding="utf-8") as arquivo:
             return json.load(arquivo)
 
-    def _salvar_arquivo(self, dados: dict) -> None:
-        with ARQUIVO_DADOS.open("w", encoding="utf-8") as arquivo:
+    def _salvar_arquivo(self, dados):
+        arquivo_temporario = ARQUIVO_DADOS.with_suffix(".tmp")
+
+        with arquivo_temporario.open("w", encoding="utf-8") as arquivo:
             json.dump(
                 dados,
                 arquivo,
@@ -43,8 +45,11 @@ class Storage:
                 indent=2,
             )
 
+        arquivo_temporario.replace(ARQUIVO_DADOS)
+
     def executar_atomico(self, operacao):
         with self.lock:
+
             if self.usar_arquivo:
                 try:
                     self.memoria = self._carregar_arquivo()
@@ -60,6 +65,17 @@ class Storage:
                     self.usar_arquivo = False
 
             return resultado
+
+    def ler(self):
+        with self.lock:
+
+            if self.usar_arquivo:
+                try:
+                    self.memoria = self._carregar_arquivo()
+                except (OSError, json.JSONDecodeError):
+                    self.usar_arquivo = False
+
+            return self.memoria.copy()
 
 
 storage = Storage()
