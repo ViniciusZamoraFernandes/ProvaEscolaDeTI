@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -11,6 +12,17 @@ app = FastAPI()
 
 class EmitirSenhaRequest(BaseModel):
     tipo: TipoSenha
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request,
+    exc: RequestValidationError,
+):
+    return JSONResponse(
+        status_code=422,
+        content={"erro": "tipo_invalido"},
+    )
 
 
 @app.get("/healthz")
